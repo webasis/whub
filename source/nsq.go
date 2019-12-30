@@ -22,7 +22,7 @@ func NATS(conn *nats.Conn, subject string) *NATSSource {
 	}
 	src.conn.Subscribe(subject, func(msg *nats.Msg) {
 		m := whub.M()
-		err := json.Unmarshal(msg.Data, m)
+		err := json.Unmarshal(msg.Data, &m)
 		if err != nil {
 			//TODO log
 			return
