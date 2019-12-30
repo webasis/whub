@@ -35,6 +35,7 @@ func Test_Message(t *testing.T) {
 func Test_Record_Bind(t *testing.T) {
 	type Req struct {
 		Name   string `whub:"-"`
+		Key    string `whub:"not_key"`
 		Age    int32
 		Length float64
 		OK     bool
@@ -44,6 +45,8 @@ func Test_Record_Bind(t *testing.T) {
 	R().
 		Put("name", "mofon").
 		Put("url", "https://mofon.top/").
+		Put("key", "!!!").
+		Put("not_key", "right").
 		Put("age", "18").
 		Put("length", "-2").
 		Put("ok", "true").
@@ -55,6 +58,9 @@ func Test_Record_Bind(t *testing.T) {
 	if r.Url != "https://mofon.top/" {
 		t.Fatal(r)
 	}
+	if r.Key != "right" {
+		t.Fatal(r)
+	}
 	if r.Age != 18 {
 		t.Fatal(r)
 	}
@@ -64,4 +70,29 @@ func Test_Record_Bind(t *testing.T) {
 	if r.OK != true {
 		t.Fatal(r)
 	}
+}
+
+func Benchmark_Record_Bind(b *testing.B) {
+	type Req struct {
+		Name   string `whub:"-"`
+		Key    string `whub:"not_key"`
+		Age    int32
+		Length float64
+		OK     bool
+		Url    string
+	}
+
+	for i := 0; i < b.N; i++ {
+		var r Req
+		record := R().
+			Put("name", "mofon").
+			Put("url", "https://mofon.top/").
+			Put("key", "!!!").
+			Put("not_key", "right").
+			Put("age", "18").
+			Put("length", "-2").
+			Put("ok", "true")
+		record.Bind(&r)
+	}
+
 }
