@@ -18,6 +18,10 @@ func M() Message {
 }
 
 func (m Message) R(scope string) Record {
+	if m == nil {
+		return nil
+	}
+
 	r := m[scope]
 	if r == nil {
 		r = R()
@@ -46,6 +50,10 @@ func (r Record) Exist(key string) bool {
 }
 
 func (r Record) Bind(v interface{}) {
+	if r == nil {
+		return
+	}
+
 	t := reflect.TypeOf(v)
 	if t.Kind() != reflect.Ptr {
 		panic("expect pointer of struct")
@@ -103,6 +111,5 @@ func (r Record) Bind(v interface{}) {
 			}
 			rvf.SetUint(ui64)
 		}
-
 	}
 }
