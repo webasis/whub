@@ -30,10 +30,6 @@ func (m Message) R(scope string) Record {
 	return r
 }
 
-func (r Record) R() Record {
-	return r
-}
-
 func (r Record) Put(key, value string) Record {
 	if r == nil {
 		return nil
