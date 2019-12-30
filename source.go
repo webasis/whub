@@ -1,7 +1,7 @@
 package whub
 
-import "time"
+type Source chan Message
 
-type Source interface {
-	Pull(timeout time.Duration) Message
+func NewSource() Source {
+	return make(Source, 128)
 }
