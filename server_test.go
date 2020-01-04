@@ -2,10 +2,10 @@ package whub
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestServer(t *testing.T) {
@@ -14,19 +14,28 @@ func TestServer(t *testing.T) {
 	}
 
 	s := NewServer()
-	go http.ListenAndServe(":8998", s)
-
-	go func() {
-		for {
-			m := M()
-			m.R("args").
-				Put("key", "note").
-				Put("value", fmt.Sprint(time.Now()))
-			m.Meta().Put("to", "@set")
-			s.R <- m
-			time.Sleep(time.Second / 10)
+	http.Handle("/ws", s)
+	http.HandleFunc("/note", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
 		}
-	}()
+		defer r.Body.Close()
+
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return
+		}
+		m := M()
+		m.R("args").
+			Put("key", "note").
+			Put("value", string(data))
+		m.Meta().Put("to", "@set")
+		s.R <- m
+		w.WriteHeader(201)
+	})
+
+	go http.ListenAndServe(":8998", nil)
 
 	kv := make(map[string]string)
 	for msg := range s.R {
