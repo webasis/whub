@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -128,10 +129,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(PongWait))
-		_, p, err := conn.ReadMessage()
+		mtype, p, err := conn.ReadMessage()
 		if err != nil {
 			return
+		}
+
+		switch mtype {
+		case websocket.TextMessage, websocket.BinaryMessage:
+		default:
+			continue
 		}
 
 		var msg Message
@@ -180,12 +186,15 @@ func (s *Server) join(conn *websocket.Conn) Agent {
 
 		s.Agents[agent.Id] = agent
 		c <- agent
+
+		log.Print("join:", agent.Id)
 	}
 	return <-c
 }
 
 func (s *Server) leave(id string) {
 	s.LiteC <- func() {
+		log.Print("leave:", id)
 		agent, ok := s.Agents[id]
 		if !ok {
 			return
