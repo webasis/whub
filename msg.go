@@ -30,6 +30,29 @@ func (m Message) R(scope string) Record {
 	return r
 }
 
+func (m Message) Remove(scope string) {
+	if m == nil {
+		return
+	}
+
+	delete(m, scope)
+}
+
+func (m Message) Meta() Record {
+	return m.R("meta")
+}
+
+func (m Message) Clone() Message {
+	cloned_m := M()
+	for k, r := range m {
+		cloned_record := cloned_m.R(k)
+		for rk, v := range r {
+			cloned_record.Put(rk, v)
+		}
+	}
+	return cloned_m
+}
+
 func (r Record) Put(key, value string) Record {
 	if r == nil {
 		return nil
