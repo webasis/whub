@@ -10,13 +10,39 @@ import (
 	"github.com/webasis/whub"
 )
 
+var (
+	Token string = os.Getenv("TOKEN")
+)
+
 func main() {
 	s := whub.NewServer()
-	http.Handle("/ws", s)
+
+	if Token != "" {
+		log.Print("open:", os.Getenv("url_prefix"), "/s/", Token)
+	}
+
+	http.HandleFunc("/s/"+Token, func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{Name: "token", Value: Token, Path: "/", MaxAge: 10000000})
+		http.Redirect(w, r, "/", http.StatusFound)
+	})
+
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		if Token != "" {
+			cookie, _ := r.Cookie("token")
+			if cookie == nil || cookie.Value != Token {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte("Unauthorized"))
+				return
+			}
+		}
+		s.ServeHTTP(w, r)
+	})
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		fmt.Fprint(w, indexHTML)
 	})
+
 	http.HandleFunc("/note", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
