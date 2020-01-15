@@ -172,7 +172,6 @@ func (s *Server) Send(msg Message) error {
 		if msg.Meta().V("lastword_to") != "" {
 			msg.Meta().Put("to", msg.Meta().V("lastword_to"))
 			agent.LastWord(msg.Clone())
-			log.Print("s.Send:lastword:", agent)
 			return nil
 		}
 
