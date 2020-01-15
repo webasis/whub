@@ -42,6 +42,10 @@ func (m Message) Meta() Record {
 	return m.R("meta")
 }
 
+func (m Message) MetaV(key string) string {
+	return m.Meta().V(key)
+}
+
 func (m Message) Clone() Message {
 	cloned_m := M()
 	for k, r := range m {
