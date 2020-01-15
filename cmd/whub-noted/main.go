@@ -99,6 +99,12 @@ func main() {
 					s.Send(m.Clone())
 				}
 			}
+		case "@print_at_server":
+			v := msg.R("args").V("value")
+			log.Println(msg.Meta().V("from"), v)
+		case "@lastword":
+			msg.Meta().Put("to", msg.Meta().V("from"))
+			s.W <- msg.Clone()
 		}
 	}
 }

@@ -41,6 +41,7 @@ const indexHTML = `
 			});
 			ws.onopen = function () {
 				ws.send(JSON.stringify({ meta: { to: "@get" }, args: { key: "note" } }));
+				ws.send(JSON.stringify({ meta: { to: "@lastword",lastword_to:"@print_at_server" }, args: { value: "I am disconnected!"}}));
 				loading.close();
 			}
 			let msgHandlers = {

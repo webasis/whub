@@ -20,16 +20,21 @@ var DefaultUpgrader = websocket.Upgrader{
 }
 
 type Agent struct {
-	Conn *websocket.Conn
-	Id   string
-	C    chan Message // For writing to client.
+	Conn      *websocket.Conn
+	Id        string
+	C         chan Message // For writing to client.
+	LastWords []Message    // Send after leave
+}
+
+func (a *Agent) LastWord(m Message) {
+	a.LastWords = append(a.LastWords, m)
 }
 
 type MiddlewareFunc func(Message) error
 type ServerFunc func(*Server)
 
 type Server struct {
-	Agents map[string]Agent // map[Id]Agent
+	Agents map[string]*Agent // map[Id]Agent
 
 	// Important: Both of these should be never closed!!!
 	C               chan ServerFunc
@@ -53,7 +58,7 @@ func NewServer() *Server {
 	}()
 
 	s := &Server{
-		Agents:   make(map[string]Agent),
+		Agents:   make(map[string]*Agent),
 		C:        make(chan ServerFunc, 1024),
 		LiteC:    make(chan func(), 1024),
 		R:        make(chan Message, 1024*16),
@@ -164,6 +169,13 @@ func (s *Server) Send(msg Message) error {
 			return errors.New("meta.close was set")
 		}
 
+		if msg.Meta().V("lastword_to") != "" {
+			msg.Meta().Put("to", msg.Meta().V("lastword_to"))
+			agent.LastWord(msg.Clone())
+			log.Print("s.Send:lastword:", agent)
+			return nil
+		}
+
 		select {
 		case agent.C <- msg:
 			return nil
@@ -175,17 +187,18 @@ func (s *Server) Send(msg Message) error {
 	return errors.New("not found target")
 }
 
-func (s *Server) join(conn *websocket.Conn) Agent {
-	c := make(chan Agent, 1)
+func (s *Server) join(conn *websocket.Conn) *Agent {
+	c := make(chan *Agent, 1)
 	s.LiteC <- func() {
 		agent := Agent{
-			Conn: conn,
-			Id:   <-s.Id,
-			C:    make(chan Message, 256),
+			Conn:      conn,
+			Id:        <-s.Id,
+			C:         make(chan Message, 256),
+			LastWords: make([]Message, 0, 16),
 		}
 
-		s.Agents[agent.Id] = agent
-		c <- agent
+		s.Agents[agent.Id] = &agent
+		c <- &agent
 
 		log.Print("join:", agent.Id)
 	}
@@ -202,5 +215,11 @@ func (s *Server) leave(id string) {
 
 		close(agent.C)
 		delete(s.Agents, id)
+
+		go func() {
+			for _, m := range agent.LastWords {
+				s.R <- m
+			}
+		}()
 	}
 }
